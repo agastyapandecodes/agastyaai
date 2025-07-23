@@ -14,9 +14,17 @@ CORS(app)
 # IMPORTANT: This line now expects the Gemini API key to be set as an environment variable
 # on your hosting platform (e.g., Render).
 # DO NOT hardcode your API key here for public deployment.
-# Example for Render: In your Render service settings, add an environment variable named GEMINI_API_KEY
-# with your actual API key as its value.
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+# --- DEBUGGING PRINT ---
+print(f"DEBUG: GEMINI_API_KEY (from os.getenv): '{GEMINI_API_KEY}'")
+if GEMINI_API_KEY is None:
+    print("DEBUG: GEMINI_API_KEY is None.")
+elif GEMINI_API_KEY == "":
+    print("DEBUG: GEMINI_API_KEY is an empty string.")
+else:
+    print(f"DEBUG: GEMINI_API_KEY has a value of length {len(GEMINI_API_KEY)}.")
+# --- END DEBUGGING PRINT ---
 
 # Gemini API endpoint
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
@@ -31,8 +39,9 @@ def get_gemini_response(prompt: str) -> str:
     Returns:
         str: The AI's generated response, or an error message if something goes wrong.
     """
+    # This is the line that triggers the frontend error message
     if not GEMINI_API_KEY:
-        print("Error: Gemini API Key environment variable is not set on the server.")
+        print("Error: Gemini API Key environment variable is not set on the server (inside get_gemini_response).")
         return "Error: Backend configuration issue. Gemini API Key is missing."
 
     headers = {
@@ -64,7 +73,7 @@ def get_gemini_response(prompt: str) -> str:
            len(result["candidates"][0]["content"]["parts"]) > 0:
             return result["candidates"][0]["content"]["parts"][0]["text"]
         else:
-            print(f"DEBUG: Unexpected API response structure: {json.dumps(result, indent=2)}")
+            print(f"DEBUG: Unexpected API response structure from Gemini: {json.dumps(result, indent=2)}")
             return "Sorry, I couldn't get a valid response from the AI. Please try again."
 
     except requests.exceptions.RequestException as e:
@@ -93,9 +102,9 @@ def chat():
     if not user_message:
         return jsonify({"error": "Missing 'message' in request body"}), 400
 
-    print(f"Received message from frontend: {user_message}")
+    print(f"Received message from frontend: '{user_message}'")
     ai_response = get_gemini_response(user_message)
-    print(f"Sending response to frontend: {ai_response}")
+    print(f"Sending response to frontend: '{ai_response}'")
 
     return jsonify({"response": ai_response})
 
@@ -104,4 +113,5 @@ if __name__ == "__main__":
     # When deployed, the hosting service (e.g., Render) will set the PORT environment variable.
     # Locally, it defaults to 5000.
     port = int(os.environ.get("PORT", 5000))
+    print(f"DEBUG: App attempting to run on host=0.0.0.0, port={port}")
     app.run(debug=True, host='0.0.0.0', port=port)
